@@ -10,7 +10,7 @@ print dane_spolki.head()
 
 przykladowy_czas = "19981201"
 przeliczony_czas = date.strftime(przykladowy_czas, "%Y%m%d")
-print przeliczony_czas
+print przeliczony_czas 
 
 
 
