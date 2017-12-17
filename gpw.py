@@ -26,48 +26,61 @@ def buy_stock(row):
 
 #end of functions section
 
-#data loading from the MST files
-stock_data = pd.read_csv("c:\\Python27\\Projects\\gpw\\bzwbk.mst")
-
-stock_data["<DTYYYYMMDD>"] = stock_data["<DTYYYYMMDD>"].apply(convert_date)
-stock_data.columns = ["Stock", "Date", "Open", "High", "Low", "Close", "Volume"]
-stock_data.set_index("Date",inplace = True)
-
 budget = 1000 #PLN
 transaction_fee = 0.0039 # wich means 0.39%. Adjust to your broker's transaction percentage
 
-#calculating moving averages
-fast_ma_period = 50
-slow_ma_period = 100
+results = pd.DataFrame(columns=["Stock","Fast_MA","Slow_MA","Return"])
+indeks = 0
 
-stock_data["Fast_MA"] = stock_data["Close"].rolling(window = fast_ma_period).mean()
-stock_data["Slow_MA"] = stock_data["Close"].rolling(window = slow_ma_period).mean()
+fast_range = 10
 
-#removing all the NaN from the Slow_Ma and Fast_MA
-stock_data_without_nan = stock_data[stock_data["Slow_MA"].notnull()]
+#data loading from the MST files
+for i in range (5,fast_range):
+    print i
+    for j in range (6, fast_range + 1):
+        stock_data = pd.read_csv("c:\\Python27\\Projects\\gpw\\bzwbk.mst")
 
-#generating signals
-stock_data_without_nan = stock_data_without_nan.assign(Signal=stock_data_without_nan.apply(generate_signal, axis = 1))
+        stock_data["<DTYYYYMMDD>"] = stock_data["<DTYYYYMMDD>"].apply(convert_date)
+        stock_data.columns = ["Stock", "Date", "Open", "High", "Low", "Close", "Volume"]
+        stock_data.set_index("Date",inplace = True)
 
-#building history of signals
-stock_data_without_nan = stock_data_without_nan.assign(Signal_1 = stock_data_without_nan["Signal"].shift(1))
-stock_data_without_nan = stock_data_without_nan.assign(Signal_2 = stock_data_without_nan["Signal_1"].shift(1))
+        #calculating moving averages
+        fast_ma_period = i
+        slow_ma_period = j
 
-#removing all NaNs
-stock_data_without_nan = stock_data_without_nan[stock_data_without_nan["Signal_2"].notnull()]
+        stock_data["Fast_MA"] = stock_data["Close"].rolling(window = fast_ma_period).mean()
+        stock_data["Slow_MA"] = stock_data["Close"].rolling(window = slow_ma_period).mean()
 
-#defining the price of transaction. Price with "minus" defines buy transaction, price with "plus" defines sell transaction
-stock_data_without_nan.loc[:,"Buy_price"] = stock_data_without_nan.apply(buy_stock, axis = 1)
+        #removing all the NaN from the Slow_Ma and Fast_MA
+        stock_data_without_nan = stock_data[stock_data["Slow_MA"].notnull()]
 
-#calculating the number of stocks to be bought. The budget is 1000 PLN
-stock_data_without_nan.loc[:,"Stock_number"] = stock_data_without_nan[stock_data_without_nan["Buy_price"].notnull()].apply(lambda v: int(budget / v["Buy_price"]), axis = 1)
+        #generating signals
+        stock_data_without_nan = stock_data_without_nan.assign(Signal=stock_data_without_nan.apply(generate_signal, axis = 1))
 
-#calculate the transaction value, including the transaction fee
-stock_data_without_nan.loc[:,"Transaction_value"] = stock_data_without_nan["Buy_price"] * stock_data_without_nan["Stock_number"].abs() - stock_data_without_nan["Buy_price"] * stock_data_without_nan["Stock_number"].abs() * transaction_fee
+        #building history of signals
+        stock_data_without_nan = stock_data_without_nan.assign(Signal_1 = stock_data_without_nan["Signal"].shift(1))
+        stock_data_without_nan = stock_data_without_nan.assign(Signal_2 = stock_data_without_nan["Signal_1"].shift(1))
 
+        #removing all NaNs
+        stock_data_without_nan = stock_data_without_nan[stock_data_without_nan["Signal_2"].notnull()]
 
-print stock_data_without_nan[stock_data_without_nan["Buy_price"].notnull()].tail()
-print stock_data_without_nan["Transaction_value"].sum()
+        #defining the price of transaction. Price with "minus" defines buy transaction, price with "plus" defines sell transaction
+        stock_data_without_nan.loc[:,"Buy_price"] = stock_data_without_nan.apply(buy_stock, axis = 1)
+
+        #calculating the number of stocks to be bought. The budget is 1000 PLN
+        stock_data_without_nan.loc[:,"Stock_number"] = stock_data_without_nan[stock_data_without_nan["Buy_price"].notnull()].apply(lambda v: int(budget / v["Buy_price"]), axis = 1)
+
+        #calculate the transaction value, including the transaction fee
+        stock_data_without_nan.loc[:,"Transaction_value"] = stock_data_without_nan["Buy_price"] * stock_data_without_nan["Stock_number"].abs() - stock_data_without_nan["Buy_price"] * stock_data_without_nan["Stock_number"].abs() * transaction_fee
+        row = ["BZWBK",fast_ma_period, slow_ma_period,stock_data_without_nan["Transaction_value"].sum()]
+        results.loc[indeks] = row
+        #print results.tail()
+        indeks = indeks +1
+        # nie działa, trzeba zrobić czyszczenie stock_data
+
+print results[results["Return"].max()]
+results.to_csv("wynik.csv")
+
 
 
 
