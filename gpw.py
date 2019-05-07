@@ -32,13 +32,13 @@ transaction_fee = 0.0039 # wich means 0.39%. Adjust to your broker's transaction
 results = pd.DataFrame(columns=["Stock","Fast_MA","Slow_MA","Return"])
 indeks = 0
 
-fast_range = 10
+fast_range = 200
 
 #data loading from the MST files
-for i in range (5,fast_range):
-    print i
-    for j in range (6, fast_range + 1):
-        stock_data = pd.read_csv("c:\\Python27\\Projects\\gpw\\bzwbk.mst")
+for i in range (5,fast_range,5):
+    for j in range (i+1, (fast_range + 2),5):
+        print(i, " - ", j)
+        stock_data = pd.read_csv("AMICA.mst")
 
         stock_data["<DTYYYYMMDD>"] = stock_data["<DTYYYYMMDD>"].apply(convert_date)
         stock_data.columns = ["Stock", "Date", "Open", "High", "Low", "Close", "Volume"]
@@ -72,13 +72,12 @@ for i in range (5,fast_range):
 
         #calculate the transaction value, including the transaction fee
         stock_data_without_nan.loc[:,"Transaction_value"] = stock_data_without_nan["Buy_price"] * stock_data_without_nan["Stock_number"].abs() - stock_data_without_nan["Buy_price"] * stock_data_without_nan["Stock_number"].abs() * transaction_fee
-        row = ["BZWBK",fast_ma_period, slow_ma_period,stock_data_without_nan["Transaction_value"].sum()]
+        #print stock_data_without_nan["Transaction_value"].sum()
+        row = ["AMICA",fast_ma_period, slow_ma_period,stock_data_without_nan["Transaction_value"].sum()]
         results.loc[indeks] = row
-        #print results.tail()
         indeks = indeks +1
-        # nie działa, trzeba zrobić czyszczenie stock_data
 
-print results[results["Return"].max()]
+print(results.loc[results["Return"].idxmax()])
 results.to_csv("wynik.csv")
 
 
